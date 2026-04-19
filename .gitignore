@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+build
+server/uploads
+
+# Specific files
+server/node_modules
+client/node_modules
+server_error.log
+diag-email.js
+scratch/
+check_problems.js
+server/check_*.js
+server/list_*.js
+server/test*.js
+server/seed_*.js
+server/verify*.js
+server/test.pdf
+server/tmp_executions/
+server/scratch/
