@@ -94,6 +94,7 @@ exports.getMyStats = async (req, res) => {
 
     // Resources by subject (for pie chart)
     const userResources = await Resource.find({ uploadedBy: userId }).lean();
+    // Resource distribution
     const subjectCounts = {};
     userResources.forEach(r => {
       const sub = r.subject || 'Other';
@@ -103,6 +104,35 @@ exports.getMyStats = async (req, res) => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
+
+    // Coding challenge stats
+    const CodingSubmission = require('../models/CodingSubmission');
+    const codingSubmissions = await CodingSubmission.find({ user: userId }).populate('problem');
+    const solvedByDifficulty = { Easy: 0, Medium: 0, Hard: 0 };
+    const solvedProblems = new Set();
+    const tagCounts = {};
+
+    codingSubmissions.forEach(s => {
+      if (s.verdict === 'Accepted ✅' && s.problem && !solvedProblems.has(s.problem._id.toString())) {
+        solvedProblems.add(s.problem._id.toString());
+        solvedByDifficulty[s.problem.difficulty] = (solvedByDifficulty[s.problem.difficulty] || 0) + 1;
+        if (s.problem.tags) {
+          s.problem.tags.forEach(tag => {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          });
+        }
+      }
+    });
+
+    const codingStats = {
+      totalSolved: solvedProblems.size,
+      solvedByDifficulty,
+      solvedByTags: Object.entries(tagCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8),
+      codingTrialCount: user.codingTrialCount
+    };
 
     // Groups
     const groupsJoined = (user.groups || []).length;
@@ -142,6 +172,8 @@ exports.getMyStats = async (req, res) => {
         completedRoadmaps,
         // Resource distribution
         resourcesBySubject,
+        // Coding stats
+        codingStats
       }
     })
   } catch (error) {

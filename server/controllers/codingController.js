@@ -170,6 +170,17 @@ const executeCode = async (language, code, stdin) => {
 exports.runCode = async (req, res) => {
   try {
     const { language, code } = req.body;
+
+    // Check usage limits
+    const user = await mongoose.model('User').findById(req.user._id);
+    if (!user.isPremium && user.codingTrialCount >= 5) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You have exhausted your 5 free coding trials. Please upgrade to Premium for unlimited access.',
+        isLimitReached: true 
+      });
+    }
+
     const problem = await CodingProblem.findById(req.params.id);
     if (!problem) return res.status(404).json({ success: false, message: 'Problem not found' });
 
@@ -205,6 +216,10 @@ exports.runCode = async (req, res) => {
       });
     }
 
+    // Increment trial count
+    user.codingTrialCount += 1;
+    await user.save();
+
     res.status(200).json({ success: true, data: results });
   } catch (error) {
     console.error(error);
@@ -216,6 +231,17 @@ exports.runCode = async (req, res) => {
 exports.submitCode = async (req, res) => {
   try {
     const { language, code } = req.body;
+
+    // Check usage limits
+    const user = await mongoose.model('User').findById(req.user._id);
+    if (!user.isPremium && user.codingTrialCount >= 5) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'You have exhausted your 5 free coding trials. Please upgrade to Premium for unlimited access.',
+        isLimitReached: true 
+      });
+    }
+
     const problem = await CodingProblem.findById(req.params.id);
     if (!problem) return res.status(404).json({ success: false, message: 'Problem not found' });
 
@@ -278,6 +304,10 @@ exports.submitCode = async (req, res) => {
       testResultDetails
     });
     await submission.save();
+
+    // Increment trial count
+    user.codingTrialCount += 1;
+    await user.save();
 
     res.status(200).json({ success: true, data: submission });
   } catch (error) {

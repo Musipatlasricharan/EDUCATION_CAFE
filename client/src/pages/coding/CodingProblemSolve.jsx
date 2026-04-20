@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../../lib/axios';
 import Editor from '@monaco-editor/react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +19,7 @@ const CodingProblemSolve = () => {
   const [submissions, setSubmissions] = useState([]);
   const [fetchingSubmissions, setFetchingSubmissions] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     fetchProblem();
@@ -83,7 +84,11 @@ const CodingProblemSolve = () => {
       }
     } catch (err) {
       console.error(err);
-      alert('Execution failed!');
+      if (err.response?.status === 403 && err.response?.data?.isLimitReached) {
+        setShowLimitModal(true);
+      } else {
+        alert(err.response?.data?.message || 'Execution failed!');
+      }
     } finally {
       setLoading(false);
     }
@@ -346,6 +351,29 @@ const CodingProblemSolve = () => {
           </div>
         </div>
       </div>
+
+      {/* Trial Limit Modal */}
+      {showLimitModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ width: '450px', backgroundColor: 'var(--bg-card)', padding: '40px', borderRadius: '32px', border: '1px solid var(--border)', textAlign: 'center', position: 'relative' }}>
+             <div style={{ width: 80, height: 80, borderRadius: '24px', backgroundColor: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+                <Zap size={40} style={{ color: '#f59e0b' }} fill="#f59e0b" />
+             </div>
+             <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '12px' }}>Free Trials Exhausted</h2>
+             <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
+                You've used your 5 free coding trials. To continue solving problems and using our execution engine, please upgrade to a Premium plan.
+             </p>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <Link to="/settings" className="btn-primary" style={{ padding: '14px', borderRadius: '14px', textDecoration: 'none', display: 'block' }}>
+                   View Membership Options
+                </Link>
+                <button onClick={() => setShowLimitModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', padding: '10px' }}>
+                   Maybe Later
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
   subjects: [{ type: String, trim: true }],
   isPremium: { type: Boolean, default: false },
   aiUsageCount: { type: Number, default: 0 },
+  codingTrialCount: { type: Number, default: 0 },
   dailyDownloadsUsed: { type: Number, default: 0 },
   lastDownloadDate: { type: Date },
   reputation: { type: Number, default: 0 },

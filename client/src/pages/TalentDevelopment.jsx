@@ -7,6 +7,10 @@ const DEPARTMENTS = [
   { id: 'business', label: 'Business & Management', icon: LineChart },
   { id: 'engineering', label: 'Engineering', icon: Cpu },
   { id: 'design', label: 'Design & Arts', icon: Palette },
+  { id: 'medical', label: 'Medical & Life Sciences', icon: Heart },
+  { id: 'law', label: 'Law & Legal Studies', icon: Shield },
+  { id: 'media', label: 'Media & Communications', icon: Users },
+  { id: 'humanities', label: 'Humanities & Social Sciences', icon: BookOpen },
 ];
 
 const TALENT_DATA = {
@@ -148,6 +152,70 @@ const TALENT_DATA = {
     workshops: [
       { title: 'Figma to Code Transition', type: 'Interactive Course', link: 'https://www.codecademy.com/learn/intro-to-ui-ux' },
       { title: 'Inclusive & Accessible Design', type: 'Live Mentorship', link: 'https://www.w3.org/WAI/fundamentals/accessibility-intro/' }
+    ]
+  },
+  medical: {
+    coreSkills: [
+      { title: 'Clinical Research & Trials', desc: 'Understand methodologies for evaluating medical treatments and drugs.', link: 'https://www.nih.gov/health-information/clinical-trials' },
+      { title: 'Healthcare Data Analytics', desc: 'Using informatics to improve patient outcomes and operational efficiency.', link: 'https://www.healthit.gov/topic/health-it-health-care-settings/informatics' },
+      { title: 'Medical Ethics & Policy', desc: 'Navigate complex ethical frameworks and global health regulations.', link: 'https://www.ama-assn.org/delivering-care/ethics' }
+    ],
+    certifications: [
+      { title: 'Health Informatics Specialization', provider: 'Johns Hopkins University', link: 'https://www.coursera.org/specializations/health-informatics' },
+      { title: 'Biostatistics Certification', provider: 'Harvard Online', link: 'https://online-learning.harvard.edu/subject/biostatistics' },
+      { title: 'Certified Public Health (CPH)', provider: 'NBPHE', link: 'https://www.nbphe.org/' }
+    ],
+    workshops: [
+      { title: 'Emergency Management Seminar', type: 'Virtual Simulation', link: 'https://www.fema.gov/training' },
+      { title: 'Global Health Systems Workshop', type: 'Live Panel', link: 'https://www.who.int/en' }
+    ]
+  },
+  law: {
+    coreSkills: [
+      { title: 'Legal Writing & Research', desc: 'Craft persuasive legal documents and master complex citation styles.', link: 'https://www.law.cornell.edu/wex/legal_research' },
+      { title: 'Intellectual Property Law', desc: 'Understand patents, copyrights, and trademarks in a digital age.', link: 'https://www.wipo.int/portal/en/index.html' },
+      { title: 'Conflict Resolution & Mediation', desc: 'Develop strategies for alternative dispute resolution and negotiation.', link: 'https://www.pon.harvard.edu/' }
+    ],
+    certifications: [
+      { title: 'Contract Law Specialization', provider: 'Yale University', link: 'https://www.coursera.org/learn/contract-law' },
+      { title: 'Ethics in Legal Practice', provider: 'Oxford University', link: 'https://www.ox.ac.uk/admissions/graduate/courses/legal-studies' },
+      { title: 'Cyber Law Certification', provider: 'Harvard Law School', link: 'https://hls.harvard.edu/' }
+    ],
+    workshops: [
+      { title: 'Moot Court Advocacy', type: 'Interactive Simulation', link: 'https://www.mootcourt.org/' },
+      { title: 'Legislative Drafting Workshop', type: 'Live Session', link: 'https://www.un.org/legal/ola/' }
+    ]
+  },
+  media: {
+    coreSkills: [
+      { title: 'Digital Journalism & Storytelling', desc: 'Master multimedia reporting and ethical news gathering techniques.', link: 'https://www.poynter.org/' },
+      { title: 'Crisis Communication', desc: 'Manage organizational reputation during high-pressure events.', link: 'https://www.prsa.org/' },
+      { title: 'Social Media Strategy', desc: 'Develop data-driven campaigns for brand growth and engagement.', link: 'https://academy.hubspot.com/courses/social-media' }
+    ],
+    certifications: [
+      { title: 'Google News Initiative Certificate', provider: 'Google', link: 'https://newsinitiative.withgoogle.com/training/' },
+      { title: 'Advanced Public Relations', provider: 'Cision Academy', link: 'https://www.cision.com/academy/' },
+      { title: 'Digital Media Management', provider: 'Coursera', link: 'https://www.coursera.org/specializations/digital-marketing' }
+    ],
+    workshops: [
+      { title: 'Broadcast Journalism Bootcamp', type: 'Hands-on Lab', link: 'https://www.bbc.com/academy' },
+      { title: 'Podcasting & Audio Storytelling', type: 'Live Mentorship', link: 'https://www.npr.org/training' }
+    ]
+  },
+  humanities: {
+    coreSkills: [
+      { title: 'Critical Thinking & Analysis', desc: 'Analyze complex texts and social phenomena with deep insight.', link: 'https://www.criticalthinking.org/' },
+      { title: 'Anthropological Research', desc: 'Understand cultural dynamics and human social evolution.', link: 'https://www.americananthro.org/' },
+      { title: 'Public Policy Formulation', desc: 'Develop frameworks for social change and government action.', link: 'https://www.brookings.edu/' }
+    ],
+    certifications: [
+      { title: 'Sociology of Media', provider: 'Stanford Online', link: 'https://online.stanford.edu/' },
+      { title: 'Philosophy and Global Health', provider: 'Coursera', link: 'https://www.coursera.org/learn/philosophy-global-health' },
+      { title: 'Historical Preservation Certificate', provider: 'National Trust', link: 'https://www.preservationnation.org/' }
+    ],
+    workshops: [
+      { title: 'Social Impact Lab', type: 'Hands-on Workshop', link: 'https://www.socialimpact.com/' },
+      { title: 'Ethics of AI Seminar', type: 'Live Discussion', link: 'https://www.oxford-aiethicscentre.org/' }
     ]
   }
 };

@@ -612,3 +612,121 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* ── CODING PERFORMANCE ── */
+.profile-coding-grid {
+  margin-top: 4px;
+}
+
+.difficulty-stats-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.diff-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.diff-bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.diff-bar-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.diff-bar-bg {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.diff-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.coding-trials-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 0;
+}
+
+.trial-status-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 4px solid var(--accent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+}
+
+.trial-main-val {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.trial-sub-lbl {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.access-action-box {
+  width: 100%;
+  text-align: center;
+}
+
+.access-msg {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+}
+
+.premium-text {
+  color: #8b5cf6;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.btn-pro-upgrade {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.btn-pro-upgrade:hover {
+  opacity: 0.9;
+}

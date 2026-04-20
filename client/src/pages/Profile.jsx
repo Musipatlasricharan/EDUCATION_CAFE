@@ -276,6 +276,91 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* ── CODING SECTION ── */}
+      <div className="section-title-row">
+        <Trophy size={20} className="section-icon trophy-icon" />
+        <h2 className="section-title">Coding Mastery</h2>
+        <span className="section-sub">Solved {stats?.codingStats?.totalSolved || 0} coding challenges</span>
+      </div>
+
+      <div className="profile-ai-grid profile-coding-grid">
+        {/* Difficulty Stats */}
+        <div className="card profile-chart-card">
+          <h3 className="chart-title">By Difficulty</h3>
+          <div className="difficulty-stats-bars">
+            {Object.entries(stats?.codingStats?.solvedByDifficulty || {}).map(([diff, count]) => {
+              const color = diff === 'Easy' ? '#10b981' : diff === 'Medium' ? '#f59e0b' : '#ef4444';
+              const diffVals = Object.values(stats?.codingStats?.solvedByDifficulty || {});
+              const maxVal = diffVals.length > 0 ? Math.max(...diffVals, 1) : 1;
+              const pct = (count / maxVal) * 100;
+              return (
+                <div key={diff} className="diff-bar-item">
+                  <div className="diff-bar-label">
+                    <span style={{ color, fontWeight: 600 }}>{diff}</span>
+                    <span className="diff-bar-count">{count} Solved</span>
+                  </div>
+                  <div className="diff-bar-bg">
+                    <div className="diff-bar-fill" style={{ width: `${pct}%`, backgroundColor: color }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tag Domains */}
+        <div className="card profile-chart-card">
+          <h3 className="chart-title">Top Skill Tags</h3>
+          <div style={{ height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={stats?.codingStats?.solvedByTags || []} 
+                layout="vertical"
+                margin={{ left: 10, right: 30, top: 0, bottom: 0 }}
+              >
+                <XAxis type="number" hide />
+                <YAxis 
+                  type="category" 
+                  dataKey="name" 
+                  stroke="var(--text-secondary)" 
+                  fontSize={10} 
+                  width={70} 
+                  tickLine={false} 
+                  axisLine={false} 
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" fill="#6366f1" name="Solved" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Subscription Status */}
+        <div className="card profile-chart-card coding-status">
+          <h3 className="chart-title">Access Status</h3>
+          <div className="coding-trials-content">
+            <div className="trial-status-circle" style={{ borderColor: stats?.isPremium ? '#8b5cf6' : '#6366f1' }}>
+              <span className="trial-main-val">
+                {stats?.isPremium ? '∞' : `${stats?.codingStats?.codingTrialCount || 0}/5`}
+              </span>
+              <span className="trial-sub-lbl">{stats?.isPremium ? 'PRO MEMBER' : 'Trials Used'}</span>
+            </div>
+            <div className="access-action-box">
+              {stats?.isPremium ? (
+                <p className="access-msg premium-text"><Zap size={14} fill="#8b5cf6" /> Unlimited Developer Access</p>
+              ) : (
+                <p className="access-msg">
+                  {Math.max(0, 5 - (stats?.codingStats?.codingTrialCount || 0))} free trials remaining
+                </p>
+              )}
+              <Link to="/settings" className="btn-pro-upgrade">
+                {stats?.isPremium ? 'View Billing' : 'Unlock Pro Access'}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ── ROADMAP & RESOURCE SECTION ── */}
       <div className="section-title-row">
         <Map size={20} className="section-icon roadmap-icon" />
