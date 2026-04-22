@@ -8,8 +8,24 @@ const agentHistorySchema = new mongoose.Schema({
   },
   agentType: {
     type: String,
-    enum: ['PDF_SUMMARIZER', 'CAREER_SCOUT', 'INTERVIEW_PREP', 'INTERVIEW_SESSION', 'ROADMAP', 'FLASHCARDS', 'QUESTION_PAPER', 'DOUBT_SOLVER'],
+    enum: [
+      'PDF_SUMMARIZER', 
+      'CAREER_SCOUT', 
+      'INTERVIEW_PREP', 
+      'INTERVIEW_SESSION', 
+      'ROADMAP', 
+      'FLASHCARDS', 
+      'QUESTION_PAPER', 
+      'DOUBT_SOLVER', 
+      'STUDY_BUDDY',
+      'PLAGIARISM_CHECKER',
+      'AUTO_TAGGER'
+    ],
     required: true
+  },
+  groupId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Group'
   },
   inputText: {
     type: String, // Can be the raw profile text or "PDF uploaded"

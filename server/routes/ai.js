@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { analyzePdf, careerScout, interviewPrep, getHistory, generateRoadmap, getRoadmaps, interactiveInterview, generateQuizAndCards, generateQuestionPaper, solveDoubt, getLearningPulse, getAiStatus, handlePlagiarismCheck, handleAutoTagging } = require('../controllers/aiController');
+const { analyzePdf, careerScout, interviewPrep, getHistory, getTypedHistory, generateRoadmap, getRoadmaps, interactiveInterview, generateQuizAndCards, generateQuestionPaper, solveDoubt, getLearningPulse, getAiStatus, handlePlagiarismCheck, handleAutoTagging } = require('../controllers/aiController');
 const path = require('path');
 const fs = require('fs');
 
@@ -39,6 +39,7 @@ router.post('/analyze-pdf', protect, upload.single('pdf'), analyzePdf);
 router.post('/career-scout', protect, careerScout);
 router.post('/interview-prep', protect, interviewPrep);
 router.get('/history', protect, getHistory);
+router.get('/typed-history', protect, getTypedHistory);
 router.post('/generate-roadmap', protect, generateRoadmap);
 router.get('/roadmaps', protect, getRoadmaps);
 router.post('/interactive-interview', protect, interactiveInterview);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Code, LineChart, Cpu, Palette, BookOpen, Award, Users, ChevronRight, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Lightbulb, Code, LineChart, Cpu, Palette, BookOpen, Award, Users, ChevronRight, CheckCircle2, ExternalLink, Heart, Shield } from 'lucide-react';
 import './TalentDevelopment.css';
 
 const DEPARTMENTS = [

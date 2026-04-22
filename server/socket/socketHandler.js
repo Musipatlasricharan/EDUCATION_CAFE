@@ -17,8 +17,13 @@ module.exports = (io) => {
     }
   })
 
-  io.on('connection', (socket) => {
+  io.on('connection', async (socket) => {
     onlineUsers.set(socket.userId, socket.id)
+    
+    // Fetch and store user info for efficient signaling
+    const user = await User.findById(socket.userId).select('name')
+    if (user) socket.userName = user.name
+
     io.emit('online_users', Array.from(onlineUsers.keys()))
     socket.broadcast.emit('user_online', socket.userId)
 
@@ -240,10 +245,98 @@ module.exports = (io) => {
       socket.to(groupId).emit('study_timer_updated', { timer, isActive, mode, senderId: socket.userId })
     })
 
+    socket.on('sync_ai_chat', ({ groupId, message }) => {
+      // message should include { role, text, senderName }
+      socket.to(groupId).emit('ai_chat_updated', message)
+    })
+
+    // ─── Engage Room: Live Video Signaling ───────────────────────────────────
+    // Track room participants: engageRooms[groupId] = [{ userId, name, isMuted, isVideoOff }]
+    const engageRoomKey = (groupId) => `engage:${groupId}`
+
+    socket.on('engage:join', async ({ groupId, userId, name, isMuted, isVideoOff }) => {
+      const roomKey = engageRoomKey(groupId)
+      socket.join(roomKey)
+
+      // Store participant info on socket for cleanup
+      if (!socket.engageRooms) socket.engageRooms = {}
+      socket.engageRooms[groupId] = { userId, name }
+
+      // Get all current participants in this room (excluding self)
+      const roomSockets = await io.in(roomKey).fetchSockets()
+      const existingParticipants = roomSockets
+        .filter(s => s.id !== socket.id && s.engageRooms?.[groupId])
+        .map(s => ({
+          userId: s.engageRooms[groupId].userId,
+          name: s.engageRooms[groupId].name,
+          isMuted: s.engageStatus?.[groupId]?.isMuted ?? false,
+          isVideoOff: s.engageStatus?.[groupId]?.isVideoOff ?? false
+        }))
+
+      // Send current participants list to the new joiner
+      socket.emit('engage:room-participants', existingParticipants)
+
+      // Notify everyone else that a new user has joined
+      socket.to(roomKey).emit('engage:user-joined', { userId, name, isMuted, isVideoOff })
+    })
+
+    socket.on('engage:leave', ({ groupId, userId, name }) => {
+      const roomKey = engageRoomKey(groupId)
+      socket.leave(roomKey)
+      socket.to(roomKey).emit('engage:user-left', { userId, name })
+      if (socket.engageRooms) delete socket.engageRooms[groupId]
+    })
+
+    // WebRTC signaling: forward offer/answer/ICE to specific peer
+    socket.on('engage:offer', ({ to, groupId, offer }) => {
+      const recipientSocketId = onlineUsers.get(to)
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('engage:offer', {
+          from: socket.userId,
+          name: socket.userName || 'Participant',
+          offer
+        })
+      }
+    })
+
+    socket.on('engage:answer', ({ to, groupId, answer }) => {
+      const recipientSocketId = onlineUsers.get(to)
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('engage:answer', { from: socket.userId, answer })
+      }
+    })
+
+    socket.on('engage:ice-candidate', ({ to, groupId, candidate }) => {
+      const recipientSocketId = onlineUsers.get(to)
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit('engage:ice-candidate', { from: socket.userId, candidate })
+      }
+    })
+
+    // Status updates (mute, video, hand)
+    socket.on('engage:status', ({ groupId, userId, isMuted, isVideoOff, isHandRaised }) => {
+      if (!socket.engageStatus) socket.engageStatus = {}
+      socket.engageStatus[groupId] = { isMuted, isVideoOff, isHandRaised }
+      socket.to(engageRoomKey(groupId)).emit('engage:status-update', { userId, isMuted, isVideoOff, isHandRaised })
+    })
+
+    // In-room chat (separate from group chat)
+    socket.on('engage:chat', ({ groupId, msg }) => {
+      socket.to(engageRoomKey(groupId)).emit('engage:room-chat', msg)
+    })
+    // ─── End Engage Room ─────────────────────────────────────────────────────
+
     socket.on('disconnect', () => {
+      // Leave all engage rooms and notify participants
+      if (socket.engageRooms) {
+        Object.entries(socket.engageRooms).forEach(([groupId, { userId, name }]) => {
+          socket.to(engageRoomKey(groupId)).emit('engage:user-left', { userId, name })
+        })
+      }
       onlineUsers.delete(socket.userId)
       io.emit('online_users', Array.from(onlineUsers.keys()))
       socket.broadcast.emit('user_offline', socket.userId)
     })
   })
 }
+

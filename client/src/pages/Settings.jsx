@@ -9,6 +9,7 @@ import {
 import { useForm } from 'react-hook-form'
 import api from '../lib/axios'
 import toast from 'react-hot-toast'
+import useRazorpay from '../hooks/useRazorpay'
 
 const SUBJECT_SUGGESTIONS = [
   'Data Structures', 'Algorithms', 'Operating Systems', 'DBMS',
@@ -55,6 +56,16 @@ export default function Settings() {
   const [lcUsername, setLcUsername] = useState(user?.leetcodeUsername || '')
   const [isVerifying, setIsVerifying] = useState(false)
   const fileInputRef = useRef(null)
+
+  const { initiatePayment, paying } = useRazorpay({
+    onSuccess: async () => {
+      try {
+        const res = await api.get('/auth/me')
+        if (res.data.success) setUser(prev => ({ ...prev, isPremium: true, ...res.data.user }))
+        toast.success('🎉 Premium activated!')
+      } catch {}
+    }
+  })
 
   const handleVerifyGithub = async () => {
     if (!ghUsername) return toast.error('Enter username')
@@ -370,8 +381,13 @@ export default function Settings() {
                     <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{user?.isPremium ? 'Unlimited downloads and all features unlocked.' : 'Upgrade to Premium for unlimited downloads.'}</p>
                   </div>
                   {!user?.isPremium && (
-                    <button className="btn-primary" style={{ marginLeft: 'auto', padding: '9px 18px', borderRadius: 12, fontSize: 13, whiteSpace: 'nowrap' }} onClick={() => window.open('https://musipatlasricharan36.mojo.page/join-us', '_blank')}>
-                      Upgrade ✨
+                    <button
+                      className="btn-primary"
+                      style={{ marginLeft: 'auto', padding: '9px 18px', borderRadius: 12, fontSize: 13, whiteSpace: 'nowrap', opacity: paying ? 0.7 : 1 }}
+                      onClick={() => initiatePayment(user)}
+                      disabled={paying}
+                    >
+                      {paying ? 'Processing...' : 'Upgrade ✨'}
                     </button>
                   )}
                 </div>

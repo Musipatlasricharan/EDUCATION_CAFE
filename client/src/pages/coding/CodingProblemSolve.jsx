@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Play, Send, CheckCircle, Clock, Zap, BookOpen, Lock, Loader } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import useRazorpay from '../../hooks/useRazorpay';
 
 const CodingProblemSolve = () => {
   const { id } = useParams();
@@ -20,6 +21,17 @@ const CodingProblemSolve = () => {
   const [fetchingSubmissions, setFetchingSubmissions] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+
+  const { initiatePayment, paying } = useRazorpay({
+    onSuccess: async () => {
+      setShowLimitModal(false);
+      // Refresh user in auth context so isPremium becomes true
+      try {
+        const res = await api.get('/auth/me');
+        if (res.data.success) user && Object.assign(user, { isPremium: true });
+      } catch {}
+    }
+  });
 
   useEffect(() => {
     fetchProblem();
@@ -363,14 +375,19 @@ const CodingProblemSolve = () => {
              <p style={{ color: 'var(--text-secondary)', fontSize: '15px', lineHeight: 1.6, marginBottom: '32px' }}>
                 You've used your 5 free coding trials. To continue solving problems and using our execution engine, please upgrade to a Premium plan.
              </p>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <Link to="/settings" className="btn-primary" style={{ padding: '14px', borderRadius: '14px', textDecoration: 'none', display: 'block' }}>
-                   View Membership Options
-                </Link>
-                <button onClick={() => setShowLimitModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', padding: '10px' }}>
-                   Maybe Later
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <button
+                  onClick={() => initiatePayment(user)}
+                  disabled={paying}
+                  className="btn-primary"
+                  style={{ padding: '14px', borderRadius: '14px', fontSize: 15, fontWeight: 700, opacity: paying ? 0.7 : 1, cursor: paying ? 'wait' : 'pointer' }}
+                >
+                  {paying ? '⏳ Processing Payment...' : '⚡ Upgrade to Premium – ₹499'}
                 </button>
-             </div>
+                <button onClick={() => setShowLimitModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', padding: '10px' }}>
+                  Maybe Later
+                </button>
+              </div>
           </div>
         </div>
       )}

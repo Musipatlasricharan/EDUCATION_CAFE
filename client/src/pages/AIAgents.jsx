@@ -111,9 +111,33 @@ export default function AIAgents() {
     recognition.start();
   };
 
-  const startInterview = () => {
+  const startInterview = async () => {
     setIsInterviewActive(true);
-    setInterviewMessages([{ role: 'model', text: `Hello! I'm your AI interviewer today. We'll be focusing on ${interviewTopic}. Ready to start? Give me a quick intro or just say "Let's go!"` }]);
+    setInterviewLoading(true);
+    try {
+      // Try to fetch last session history for this topic
+      const res = await api.get(`/ai/typed-history?agentType=INTERVIEW_SESSION`);
+      if (res.data.history && res.data.history.length > 0) {
+        // Filter by topic if it matches
+        const topicHistory = res.data.history.filter(h => h.metadata?.topic === interviewTopic);
+        if (topicHistory.length > 0) {
+           const formatted = topicHistory.flatMap(h => [
+             { role: 'user', text: h.inputText },
+             { role: 'model', text: h.result }
+           ]);
+           setInterviewMessages(formatted);
+           setInterviewLoading(false);
+           return;
+        }
+      }
+      // Fallback: Start fresh
+      setInterviewMessages([{ role: 'model', text: `Hello! I'm your AI interviewer today. We'll be focusing on ${interviewTopic}. Ready to start? Give me a quick intro or just say "Let's go!"` }]);
+    } catch (err) {
+      console.error('Failed to restore interview session:', err);
+      setInterviewMessages([{ role: 'model', text: `Hello! I'm your AI interviewer today. We'll be focusing on ${interviewTopic}. Ready to start?` }]);
+    } finally {
+      setInterviewLoading(false);
+    }
   };
 
   const handleSendMessage = async (e) => {

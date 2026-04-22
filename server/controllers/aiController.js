@@ -217,6 +217,27 @@ exports.getHistory = async (req, res) => {
   }
 };
 
+exports.getTypedHistory = async (req, res) => {
+  try {
+    const { agentType, groupId } = req.query;
+    if (!req.user) return res.status(401).json({ success: false, message: 'Not authorized' });
+
+    let query = { agentType };
+    
+    if (groupId) {
+      query.groupId = groupId;
+    } else {
+      query.user = req.user._id;
+    }
+
+    const history = await AgentHistory.find(query).sort({ createdAt: 1 }).limit(50);
+    return res.status(200).json({ success: true, history });
+  } catch (error) {
+    console.error('API /get-typed-history Error:', error);
+    return res.status(500).json({ success: false, message: 'Server Error fetching typed history' });
+  }
+};
+
 exports.generateRoadmap = async (req, res) => {
   try {
     const hasAccess = await checkUserLimit(req.user);
@@ -310,7 +331,7 @@ exports.interactiveInterview = async (req, res) => {
       agentType: 'INTERVIEW_SESSION',
       inputText: userMessage,
       result: aiMessage,
-      metadata: { topic, sessionLength: (history?.length || 0) + 1 }
+      metadata: { topic, sessionLength: (history?.length || 0) + 1, senderName: req.user.name }
     });
 
     await incrementUsage(req.user);
@@ -515,7 +536,7 @@ exports.studyRoomChat = async (req, res) => {
     if (!hasAccess) {
       return res.status(403).json({ success: false, message: 'You have reached your limit of 50 free AI trials. Please upgrade to Premium to continue.' });
     }
-    const { history, userMessage } = req.body;
+    const { history, userMessage, groupId } = req.body;
     
     if (!userMessage) {
       return res.status(400).json({ success: false, message: 'Please provide message' });
@@ -527,12 +548,14 @@ exports.studyRoomChat = async (req, res) => {
       userMessage 
     }, req.user?.isPremium);
 
+    // Save history tied to user and group
     await saveHistory({
       user: req.user._id,
+      groupId: groupId || null,
       agentType: 'STUDY_BUDDY',
       inputText: userMessage,
       result: aiMessage,
-      metadata: { sessionLength: (history?.length || 0) + 1 }
+      metadata: { sessionLength: (history?.length || 0) + 1, senderName: req.user.name }
     });
 
     await incrementUsage(req.user);

@@ -770,7 +770,7 @@ export default function GroupDetail() {
           )}
 
           {activeTab === 'study-room' && (
-            <StudyRoom groupId={id} socket={socket} user={user} />
+            <StudyRoom groupId={id} group={group} socket={socket} user={user} />
           )}
         </div>
 

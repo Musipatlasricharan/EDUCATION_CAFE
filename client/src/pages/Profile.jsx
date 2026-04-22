@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/axios'
+import useRazorpay from '../hooks/useRazorpay'
 import {
   Award, Rocket, Trophy, Flame, Zap, Star, Shield,
   UploadCloud, Download, Edit, Bot, Map, Users, BookOpen,
@@ -62,12 +63,24 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function Profile() {
-  const { user } = useAuth()
+  const { user, setUser } = useAuth()
+  const queryClient = useQueryClient()
   const { data: stats, isLoading } = useQuery({
     queryKey: ['user-stats'],
     queryFn: async () => {
       const { data } = await api.get('/users/me/stats')
       return data.data
+    }
+  })
+
+  const { initiatePayment, paying } = useRazorpay({
+    onSuccess: async () => {
+      // Refresh user context + stats after payment
+      try {
+        const res = await api.get('/auth/me')
+        if (res.data.success) setUser(prev => ({ ...prev, isPremium: true, ...res.data.user }))
+      } catch {}
+      queryClient.invalidateQueries(['user-stats'])
     }
   })
 
@@ -353,9 +366,18 @@ export default function Profile() {
                   {Math.max(0, 5 - (stats?.codingStats?.codingTrialCount || 0))} free trials remaining
                 </p>
               )}
-              <Link to="/settings" className="btn-pro-upgrade">
-                {stats?.isPremium ? 'View Billing' : 'Unlock Pro Access'}
-              </Link>
+              {!stats?.isPremium ? (
+                <button
+                  onClick={() => initiatePayment(user)}
+                  disabled={paying}
+                  className="btn-pro-upgrade"
+                  style={{ opacity: paying ? 0.7 : 1, cursor: paying ? 'wait' : 'pointer' }}
+                >
+                  {paying ? '⏳ Processing...' : 'Unlock Pro Access ✨'}
+                </button>
+              ) : (
+                <span className="btn-pro-upgrade" style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}>View Billing</span>
+              )}
             </div>
           </div>
         </div>
