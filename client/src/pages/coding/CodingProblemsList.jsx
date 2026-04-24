@@ -32,6 +32,22 @@ const CodingProblemsList = () => {
     }
   };
 
+  const seedDatabase = async () => {
+    try {
+      setLoading(true);
+      const res = await api.post('/coding/seed');
+      if (res.data.success) {
+        alert('Initial coding challenges have been restored! Refreshing list...');
+        fetchProblems();
+      }
+    } catch (err) {
+      console.error('[Coding] Seed error:', err);
+      alert('Seeding failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredProblems = problems.filter(p => {
     if (filterDifficulty !== 'All' && p.difficulty !== filterDifficulty) return false;
     if (search && !p.title.toLowerCase().includes(search.toLowerCase())) return false;
@@ -110,7 +126,17 @@ const CodingProblemsList = () => {
              <div className="card glass" style={{ padding: '80px', textAlign: 'center', borderRadius: '32px' }}>
                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔍</div>
                <h3 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>No challenges found</h3>
-               <p style={{ color: 'var(--text-secondary)' }}>Try adjusting your search or filters.</p>
+               <p style={{ color: 'var(--text-secondary)', marginBottom: '32px' }}>Try adjusting your search or filters. If the database is empty, you can initialize it below.</p>
+               
+               {user?.role === 'admin' && (
+                 <button 
+                   onClick={seedDatabase}
+                   className="btn-primary" 
+                   style={{ padding: '12px 32px', borderRadius: '16px', background: 'var(--accent-gradient)' }}
+                 >
+                   Restore Initial Challenges
+                 </button>
+               )}
              </div>
           ) : (
             filteredProblems.map((problem, i) => (

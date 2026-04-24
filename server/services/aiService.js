@@ -7,12 +7,87 @@ console.log("🚀 Initializing Gemini AI Service...");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy-key-for-now');
 
 // Model constants
-const FREE_MODEL = "gemini-2.5-flash";
-const PREMIUM_MODEL = "gemini-3-pro-preview";
+// Model constants with fallback pool
+const MODEL_POOL = [
+  "gemini-2.0-flash",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash-001",
+  "gemini-flash-latest",
+  "gemini-3-flash-preview",
+  "gemini-2.0-flash-lite",
+  "gemini-2.0-flash-lite-001",
+  "gemini-flash-lite-latest",
+  "gemini-2.0-pro-exp-02-05"
+];
 
-const getModel = (isPremium = false) => {
-  return genAI.getGenerativeModel({ model: isPremium ? PREMIUM_MODEL : FREE_MODEL });
+const getModel = (isPremium = false, isJson = false) => {
+  // Use the first model by default. If it fails, the service functions should ideally retry with the next one.
+  // For simplicity, we'll keep the first one as default but allow the environment to override.
+  const modelName = process.env.PREFERRED_MODEL || MODEL_POOL[0];
+  const config = isJson ? { responseMimeType: "application/json" } : {};
+  return genAI.getGenerativeModel({ model: modelName, generationConfig: config });
 };
+
+/**
+ * Intelligent wrapper to handle quota issues by switching models
+ */
+async function generateWithFallback(prompt, isJson = false, isPremium = false, parts = null) {
+  let lastError = null;
+  
+  for (const modelName of MODEL_POOL) {
+    try {
+      console.log(`[AI] Attempting generation with ${modelName}...`);
+      const config = isJson ? { responseMimeType: "application/json" } : {};
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: config });
+      
+      let result;
+      if (parts) {
+        result = await model.generateContent(parts);
+      } else {
+        result = await model.generateContent(prompt);
+      }
+      
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      lastError = error;
+      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('503')) {
+        console.warn(`[AI] Model ${modelName} exhausted or busy. Trying next in 1s...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      throw error; // If it's not a quota/busy error, throw immediately
+    }
+  }
+  
+  throw lastError || new Error("All models in pool failed.");
+}
+
+/**
+ * Executes a function with model fallback
+ */
+async function runWithModelFallback(fn, isPremium = false, isJson = false) {
+  let lastError = null;
+  for (const modelName of MODEL_POOL) {
+    try {
+      console.log(`[AI] Attempting action with ${modelName}...`);
+      const config = isJson ? { responseMimeType: "application/json" } : {};
+      const model = genAI.getGenerativeModel({ model: modelName, generationConfig: config });
+      return await fn(model);
+    } catch (error) {
+      lastError = error;
+      if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('503')) {
+        console.warn(`[AI] Model ${modelName} exhausted or busy. Trying next in 1s...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw lastError || new Error("All models in pool failed.");
+}
+
+
 
 
 /**
@@ -20,38 +95,47 @@ const getModel = (isPremium = false) => {
  * Handles markdown code blocks and potential extra text.
  */
 function parseJsonResponse(text) {
+  if (!text) throw new Error('Empty response from AI');
+  
+  const cleanText = text.trim();
+  
   try {
-    // Attempt 1: Regular JSON parse if it's already a clean string
-    return JSON.parse(text);
+    // Attempt 1: Clean JSON
+    return JSON.parse(cleanText);
   } catch (e) {
-    // Attempt 2: Extract JSON from markdown code blocks
-    const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/i);
-    if (codeBlockMatch) {
+    // Attempt 2: Markdown block extraction
+    const markdownMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (markdownMatch && markdownMatch[1]) {
       try {
-        return JSON.parse(codeBlockMatch[1]);
-      } catch (e2) {}
+        return JSON.parse(markdownMatch[1].trim());
+      } catch (e2) {
+        console.warn("Failed to parse JSON inside markdown block, trying raw extraction...");
+      }
     }
 
-    // Attempt 3: Robust Regex to find the first { and last }
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
+    // Attempt 3: Bracket extraction (most robust)
+    const firstBrace = cleanText.indexOf('{');
+    const lastBrace = cleanText.lastIndexOf('}');
+    
     if (firstBrace !== -1 && lastBrace !== -1) {
-      const jsonStr = text.substring(firstBrace, lastBrace + 1);
+      const jsonCandidate = cleanText.substring(firstBrace, lastBrace + 1);
       try {
-        return JSON.parse(jsonStr);
+        return JSON.parse(jsonCandidate);
       } catch (e3) {
-        // Attempt 4: Even more desperate - try to fix common JSON errors (like dangling commas)
-        const fixedJson = jsonStr.replace(/,\s*([\]}])/g, '$1');
+        // Attempt 4: Fix common JSON issues
         try {
-          return JSON.parse(fixedJson);
+          const fixed = jsonCandidate
+            .replace(/,\s*([\]}])/g, '$1') // dangling commas
+            .replace(/([^\\])"\s*\+/g, '$1') // string concatenation
+            .replace(/\n/g, ' '); // newlines in strings (risky but sometimes needed)
+          return JSON.parse(fixed);
         } catch (e4) {
-          console.error("Failed to parse JSON even after all attempts:", e4);
+          console.error("Final JSON parse attempt failed. Candidate:", jsonCandidate);
         }
       }
     }
     
-    console.error("Full text response that failed parsing:", text);
-    // Return a fallback object instead of throwing if possible, or throw a descriptive error
+    console.error("AI Response could not be parsed as JSON:", cleanText);
     throw new Error('Could not parse JSON from AI response');
   }
 }
@@ -84,7 +168,7 @@ function splitTextIntoChunks(text, maxChars = 8000) {
  */
 exports.analyzePdfText = async (text, isPremium = false) => {
   try {
-    const maxChars = isPremium ? 200000 : 100000;
+    const maxChars = isPremium ? 500000 : 200000;
     let processText = text;
 
     if (text.length > maxChars) {
@@ -101,9 +185,8 @@ exports.analyzePdfText = async (text, isPremium = false) => {
     ${processText}
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    const textResponse = await generateWithFallback(prompt, false, isPremium);
+    return textResponse;
   } catch (error) {
     console.error('Error analyzing PDF:', error.message);
     throw new Error('Failed to analyze PDF content');
@@ -115,7 +198,7 @@ exports.analyzePdfText = async (text, isPremium = false) => {
  */
 exports.analyzeCareerProfile = async (careerText, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
+    const model = getModel(isPremium, true);
 
 
     const prompt = `Extract the following information from the provided career profile text:
@@ -134,8 +217,8 @@ exports.analyzeCareerProfile = async (careerText, isPremium = false) => {
     ${careerText}
     `;
 
-    const result = await model.generateContent(prompt);
-    const textResponse = await result.response.text();
+    const textResponse = await generateWithFallback(prompt, true, isPremium);
+    console.log("Career Scout Raw Response:", textResponse);
     return parseJsonResponse(textResponse);
   } catch (error) {
     console.error('Error analyzing career profile:', error.message);
@@ -210,9 +293,8 @@ exports.generateInterviewPrep = async (topic, isPremium = false) => {
     Ensure the content is technical, professional, and directly useful for ${topic}.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    const textResponse = await generateWithFallback(prompt, false, isPremium);
+    return textResponse;
   } catch (error) {
     console.error('Error generating interview prep:', error.message);
     throw new Error('Failed to generate interview prep items');
@@ -224,18 +306,17 @@ exports.generateInterviewPrep = async (topic, isPremium = false) => {
  */
 exports.generateQuizAndCards = async (text, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
+    const model = getModel(isPremium, true);
 
 
     const maxChars = 50000;
     const processText = text.length > maxChars ? text.substring(0, maxChars) : text;
 
-    const prompt = `Based on the following study material, generate 5 multiple-choice questions (MCQs) and 5 flashcards for active recall.
+    const prompt = `Based on the following study material, generate a comprehensive summary, 5 multiple-choice questions (MCQs), and 5 flashcards for active recall.
     
-    The response MUST be ONLY a JSON object. Do not include any text like "Here is the JSON" or markdown formatting outside the JSON block.
-    
-    JSON Structure:
+    Return ONLY a JSON object with this structure:
     {
+      "summary": "Markdown formatted summary of the core concepts...",
       "quizzes": [
         {
           "question": "The question string",
@@ -256,8 +337,7 @@ exports.generateQuizAndCards = async (text, isPremium = false) => {
     ${processText}
     `;
 
-    const result = await model.generateContent(prompt);
-    const textResponse = await result.response.text();
+    const textResponse = await generateWithFallback(prompt, true, isPremium);
     return parseJsonResponse(textResponse);
   } catch (error) {
     console.error('Error generating quiz and cards:', error.message);
@@ -285,9 +365,8 @@ exports.generateQuestionPaper = async ({ topic, difficulty, totalMarks }, isPrem
     Structure the response strictly in Markdown format, ready to be printed. Include a marking scheme at the end.
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    const textResponse = await generateWithFallback(prompt, false, isPremium);
+    return textResponse;
   } catch (error) {
     console.error('Error generating question paper:', error.message);
     throw new Error('Failed to generate comprehensive question paper');
@@ -299,7 +378,7 @@ exports.generateQuestionPaper = async ({ topic, difficulty, totalMarks }, isPrem
  */
 exports.generateStudyRoadmap = async ({ goal, currentLevel, duration }, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
+    const model = getModel(isPremium, true);
 
 
     const prompt = `Act as an expert academic counselor. Create a personalized, day-by-day study roadmap for a student.
@@ -308,7 +387,7 @@ exports.generateStudyRoadmap = async ({ goal, currentLevel, duration }, isPremiu
     Current Knowledge Level: ${currentLevel}
     Preferred Duration: ${duration} weeks
     
-    The response MUST be ONLY a JSON object. Ensure all strings are valid JSON strings.
+    Return ONLY a JSON object.
     
     JSON Structure:
     {
@@ -332,8 +411,7 @@ exports.generateStudyRoadmap = async ({ goal, currentLevel, duration }, isPremiu
     - Tasks must be actionable.
     `;
 
-    const result = await model.generateContent(prompt);
-    const textResponse = await result.response.text();
+    const textResponse = await generateWithFallback(prompt, true, isPremium);
     return parseJsonResponse(textResponse);
   } catch (error) {
     console.error('Error generating roadmap:', error.message);
@@ -346,29 +424,28 @@ exports.generateStudyRoadmap = async ({ goal, currentLevel, duration }, isPremiu
  */
 exports.continueInterview = async ({ topic, history, userMessage }, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
+    return await runWithModelFallback(async (model) => {
+      const chat = model.startChat({
+        history: [
+          {
+            role: "user",
+            parts: [{ text: `Act as a professional interviewer for the topic: ${topic}. Start the interview by asking one technical question. Wait for my answer. Then provide feedback and ask the next question. Keep it professional and realistic.` }],
+          },
+          {
+            role: "model",
+            parts: [{ text: "Understood. I'm ready to begin the mock interview. Let's start with the first question." }],
+          },
+          ...history.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }]
+          }))
+        ],
+      });
 
-
-    const chat = model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: `Act as a professional interviewer for the topic: ${topic}. Start the interview by asking one technical question. Wait for my answer. Then provide feedback and ask the next question. Keep it professional and realistic.` }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Understood. I'm ready to begin the mock interview. Let's start with the first question." }],
-        },
-        ...history.map(msg => ({
-          role: msg.role === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.text }]
-        }))
-      ],
-    });
-
-    const result = await chat.sendMessage(userMessage);
-    const response = await result.response;
-    return response.text();
+      const result = await chat.sendMessage(userMessage);
+      const response = await result.response;
+      return response.text();
+    }, isPremium);
   } catch (error) {
     console.error('Error in interview chat:', error.message);
     throw new Error('Failed to generate interview response');
@@ -405,9 +482,8 @@ exports.solveDoubtService = async (doubt, filePath = null, mimeType = "image/jpe
 
     parts.push({ text: prompt });
 
-    const result = await model.generateContent(parts);
-    const response = await result.response;
-    return response.text();
+    const textResponse = await generateWithFallback(null, false, isPremium, parts);
+    return textResponse;
   } catch (error) {
     console.error('Error solving doubt:', error.message);
     throw error; // Let the controller handle and report the specific error
@@ -422,10 +498,10 @@ exports.checkAiHealth = async () => {
     
     // Test Gemini
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const res = await model.generateContent("ping");
         results.gemini.success = !!res.response.text();
-        results.gemini.model = "gemini-1.5-flash-latest";
+        results.gemini.model = "gemini-2.5-flash";
     } catch (e) {
         results.gemini.error = e.message;
     }
@@ -454,23 +530,19 @@ exports.checkAiHealth = async () => {
  */
 exports.checkPlagiarism = async (text, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
+    const model = getModel(isPremium, true);
     const processText = text.substring(0, 15000);
-    const prompt = `You are an advanced academic integrity detector. Analyze the following text and determine if it was likely generated by an AI (like ChatGPT), copied from the web, or is highly likely human-written. 
-    
-    Respond STRICTLY in JSON format with no markdown wrappers:
+    const prompt = `Analyze text for AI generation or plagiarism. Return ONLY JSON.
     {
-      "aiProbabilityScore": 85, // out of 100
-      "verdict": "Likely AI-Generated", // or "Human Written", "Highly Suspicious"
-      "analysis": "The text contains repetitive transition words commonly used by LLMs...",
-      "flaggedPhrases": ["phrase 1 that sounds robotic"]
+      "aiProbabilityScore": 85,
+      "verdict": "Likely AI-Generated",
+      "analysis": "Explanation...",
+      "flaggedPhrases": ["phrase 1"]
     }
     
-    Text to analyze:
-    ${processText}`;
+    Text: ${processText}`;
     
-    const result = await model.generateContent(prompt);
-    const textResponse = await result.response.text();
+    const textResponse = await generateWithFallback(prompt, true, isPremium);
     return parseJsonResponse(textResponse);
   } catch (error) {
     console.error('Plagiarism check error:', error.message);
@@ -483,23 +555,19 @@ exports.checkPlagiarism = async (text, isPremium = false) => {
  */
 exports.autoTagDocument = async (text, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
+    const model = getModel(isPremium, true);
     const processText = text.substring(0, 8000);
-    const prompt = `Analyze this document content and generate precise metadata tags to categorize it in a study platform database.
-    
-    Respond STRICTLY in JSON format with no markdown wrappers:
+    const prompt = `Generate metadata tags for this study document. Return ONLY JSON.
     {
-      "primaryCategory": "Computer Science",
-      "topic": "Data Structures",
-      "difficulty": "Intermediate",
-      "tags": ["Arrays", "Pointers", "Memory Management", "C++"]
+      "primaryCategory": "Category",
+      "topic": "Topic",
+      "difficulty": "Easy/Medium/Hard",
+      "tags": ["Tag1", "Tag2"]
     }
     
-    Document Text:
-    ${processText}`;
+    Text: ${processText}`;
     
-    const result = await model.generateContent(prompt);
-    const textResponse = await result.response.text();
+    const textResponse = await generateWithFallback(prompt, true, isPremium);
     return parseJsonResponse(textResponse);
   } catch (error) {
     console.error('Auto-tagging error:', error.message);
@@ -509,30 +577,30 @@ exports.autoTagDocument = async (text, isPremium = false) => {
 
 exports.studyChat = async ({ history, userMessage }, isPremium = false) => {
   try {
-    const model = getModel(isPremium);
-    
-    const chat = model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: "Act as an expert academic tutor and study buddy. The user is in a study room. Answer their doubts clearly, concisely, and with accurate explanations. Use Markdown for formatting. Do NOT act as an interviewer." }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Understood. I am your expert academic tutor. I'm ready to help you with your doubts." }],
-        },
-        ...history.map(msg => ({
-          role: msg.role === 'user' ? 'user' : 'model',
-          parts: [{ text: msg.text }]
-        }))
-      ],
-    });
+    return await runWithModelFallback(async (model) => {
+      const chat = model.startChat({
+        history: [
+          {
+            role: "user",
+            parts: [{ text: "Act as an expert academic tutor and study buddy. The user is in a study room. Answer their doubts clearly, concisely, and with accurate explanations. Use Markdown for formatting. Do NOT act as an interviewer." }],
+          },
+          {
+            role: "model",
+            parts: [{ text: "Understood. I am your expert academic tutor. I'm ready to help you with your doubts." }],
+          },
+          ...history.map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.text }]
+          }))
+        ],
+      });
 
-    const result = await chat.sendMessage(userMessage);
-    const response = await result.response;
-    return response.text();
+      const result = await chat.sendMessage(userMessage);
+      const response = await result.response;
+      return response.text();
+    }, isPremium);
   } catch (error) {
-    console.error('Error in study chat:', error.message);
+    console.error('Error in study chat:', error.message, error.stack);
     throw new Error('Failed to generate study chat response. Please ask again.');
   }
 };

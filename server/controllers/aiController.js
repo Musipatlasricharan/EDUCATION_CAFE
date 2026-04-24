@@ -471,6 +471,13 @@ exports.getLearningPulse = async (req, res) => {
     
     const isBurnoutRisk = recentActivityCount > 15;
 
+    const totalInteractions = history.length;
+    const finalScore = Math.min(100, Math.max(0, (notesCount * 10) + (totalInteractions * 2)));
+    let advice = "Keep going! Your learning journey is just beginning.";
+    if (finalScore > 80) advice = "Excellent momentum! You're a power learner.";
+    else if (finalScore > 50) advice = "Great progress. Consistency is key.";
+    if (isBurnoutRisk) advice = "You've been very active. Consider taking a short break to stay fresh!";
+
     res.status(200).json({
       success: true,
       data: {
@@ -478,7 +485,7 @@ exports.getLearningPulse = async (req, res) => {
         advice,
         isBurnoutRisk,
         stats: {
-          aiInteractions: history.length,
+          aiInteractions: totalInteractions,
           notesTaken: notesCount,
           recentActivity: recentActivityCount
         }

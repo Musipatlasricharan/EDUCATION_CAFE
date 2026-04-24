@@ -547,6 +547,15 @@ export default function AIAgents() {
                 </form>
                 {lectureResult && (
                   <motion.div className="mt-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                    {lectureResult.summary && (
+                      <div className="result-box mb-8">
+                        <h3 className="m-0 mb-4"><FileText size={18} className="text-primary"/> Lecture Summary</h3>
+                        <div className="markdown-body">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{lectureResult.summary}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="m-0"><Brain size={18} className="text-primary"/> Generated Flashcards</h3>
                     </div>

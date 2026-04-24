@@ -136,7 +136,13 @@ if (process.env.NODE_ENV === 'production') {
 const PORT = process.env.PORT || 5000
 
 const startServer = async () => {
-  // Start listening immediately so Vite proxy and AI agents work right away
+  try {
+    await connectDB();
+    await seedProblems();
+  } catch (err) {
+    console.error('⚠️ DB Initialization warning:', err.message);
+  }
+
   server.listen(PORT, () => {
     console.log(`🚀 Server listening on port ${PORT}`);
     console.log(`🏥 Health check: http://localhost:${PORT}/api/ai/status`);
@@ -144,25 +150,31 @@ const startServer = async () => {
 
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} is already in use. Run this to fix:`);
-      console.error(`   netstat -ano | findstr :${PORT}  → then taskkill /PID <id> /F`);
+      console.error(`❌ Port ${PORT} is already in use.`);
       process.exit(1);
     }
   });
+}
 
-  try {
-    // Connect to DB in background
-    await connectDB();
-    
-    // Seed essential coding problems
-    await seedProblems();
-  } catch (err) {
-    console.error('⚠️ DB Initialization warning:', err.message);
-    // Continue running anyway as agents are now resilient
+// In Vercel (serverless), we don't call server.listen()
+// We only call it for local development
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  if (require.main === module) {
+    startServer()
   }
 }
 
-startServer()
+// For serverless functions, ensure DB is connected
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
+module.exports = app;
 
  
  

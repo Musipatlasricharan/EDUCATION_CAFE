@@ -38,9 +38,19 @@ exports.getProblems = async (req, res) => {
     if (difficulty && difficulty !== 'All') query.difficulty = difficulty;
     if (tags) query.tags = { $in: tags.split(',') };
 
-    const problems = await CodingProblem.find(query)
+    let problems = await CodingProblem.find(query)
       .select('_id title difficulty tags acceptanceRate createdAt')
       .sort({ createdAt: -1 });
+
+    // Auto-seed if empty
+    if (problems.length === 0 && !difficulty && !tags) {
+      console.log('[Coding] Problems list empty. Triggering auto-seed...');
+      const seedProblems = require('../utils/seeder');
+      await seedProblems();
+      problems = await CodingProblem.find(query)
+        .select('_id title difficulty tags acceptanceRate createdAt')
+        .sort({ createdAt: -1 });
+    }
     
     console.log(`[Coding] Fetched ${problems.length} problems from DB. (User: ${req.user?._id || 'guest'})`);
     

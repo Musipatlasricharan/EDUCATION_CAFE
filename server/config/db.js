@@ -11,6 +11,9 @@ try {
 }
 
 const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
   let retries = 3;
   while (retries > 0) {
     try {

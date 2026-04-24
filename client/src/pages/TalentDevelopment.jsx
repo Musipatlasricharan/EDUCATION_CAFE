@@ -18,7 +18,7 @@ const TALENT_DATA = {
     coreSkills: [
       { title: 'Full-Stack Web Development', desc: 'Master modern frontend frameworks (React/Vue) and robust backend architectures.', link: 'https://react.dev/learn' },
       { title: 'Cloud Computing & DevOps', desc: 'Learn AWS/Azure, Docker, and CI/CD pipelines to deploy scalable applications.', link: 'https://aws.amazon.com/training/' },
-      { title: 'Data Structures & Algorithms', desc: 'Build a strong foundation in problem-solving for technical interviews.', link: 'https://leetcode.com/explore/' }
+      { title: 'Data Structures & Algorithms', desc: 'Build a strong foundation in problem-solving for technical interviews.', link: '/coding/problems', internal: true }
     ],
     certifications: [
       { title: 'AWS Certified Solutions Architect', provider: 'Amazon Web Services', link: 'https://aws.amazon.com/certification/certified-solutions-architect-associate/' },
@@ -239,8 +239,12 @@ export default function TalentDevelopment() {
     activeData = activeData.content[activeSubDept] || activeData.content['cs'];
   }
 
-  const handleExternalNav = (url) => {
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const handleExternalNav = (url, internal = false) => {
+    if (internal) {
+      window.location.href = url;
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
@@ -299,8 +303,8 @@ export default function TalentDevelopment() {
                 <div className="item-content">
                   <h3>{skill.title}</h3>
                   <p>{skill.desc}</p>
-                  <button className="action-btn" onClick={() => handleExternalNav(skill.link)}>
-                    Start Learning <ExternalLink size={14} style={{ marginLeft: '4px' }} />
+                  <button className="action-btn" onClick={() => handleExternalNav(skill.link, skill.internal)}>
+                    {skill.internal ? 'Try Challenges' : 'Start Learning'} <ExternalLink size={14} style={{ marginLeft: '4px' }} />
                   </button>
                 </div>
               </li>

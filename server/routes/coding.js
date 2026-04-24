@@ -15,4 +15,11 @@ router.post('/problems/:id/run', protect, runCode);
 router.post('/problems/:id/submit', protect, submitCode);
 router.get('/problems/:id/submissions', protect, getUserSubmissions);
 
+// Manual Seed route (For admins or for fixing empty DB)
+router.post('/seed', protect, authorize('admin'), (req, res, next) => {
+  require('../utils/seeder')()
+    .then(() => res.status(200).json({ success: true, message: 'Problems seeded successfully' }))
+    .catch(err => res.status(500).json({ success: false, message: err.message }));
+});
+
 module.exports = router;
