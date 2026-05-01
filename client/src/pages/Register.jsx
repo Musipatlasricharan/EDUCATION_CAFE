@@ -126,6 +126,21 @@ export default function Register() {
               <button type="submit" disabled={isSubmitting} className="btn-primary" style={{ marginTop: 16, padding: '12px', fontSize: 16 }}>
                 {isSubmitting ? 'Creating account...' : 'Create Account'}
               </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, margin: '16px 0' }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }}></div>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>OR</span>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }}></div>
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ height: 'auto', padding: '12px', fontSize: 16, width: '100%' }}
+                onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || '/api'}/auth/google`}
+              >
+                Continue with Google
+              </button>
             </form>
 
             <p style={{ textAlign: 'center', marginTop: 32, fontSize: 14, color: 'var(--text-secondary)' }}>

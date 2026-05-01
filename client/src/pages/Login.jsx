@@ -80,7 +80,7 @@ const Login = () => {
               type="default"
               block
               style={{ height: 'auto', padding: '12px', fontSize: 16, borderRadius: 'var(--radius)', color: 'var(--text-primary)', borderColor: 'var(--border)' }}
-              onClick={() => window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`}
+              onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || '/api'}/auth/google`}
             >
               Continue with Google
             </Button>

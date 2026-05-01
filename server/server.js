@@ -115,6 +115,7 @@ app.use('/api/ai', require('./routes/ai'))
 app.use('/api/tutoring', require('./routes/tutoring'))
 app.use('/api/notes', require('./routes/notes'))
 app.use('/api/payment', require('./routes/payment'))
+app.use('/api/projects', require('./routes/projects'))
 
 // Socket Handling
 socketHandler(io)

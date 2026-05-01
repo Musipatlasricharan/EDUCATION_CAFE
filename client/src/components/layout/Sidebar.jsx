@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   Home, TrendingUp, Users, MessageSquare, Trophy, FolderHeart,
   PlusSquare, Mail, Lightbulb, Bot, BookOpen, FileText, ChevronDown,
-  GraduationCap, Sparkles, BarChart3, Globe, FileCheck, Code
+  GraduationCap, Sparkles, BarChart3, Globe, FileCheck, Code, GitBranch
 } from 'lucide-react'
 import { useMyGroups } from '../../hooks/useGroups'
 import { useSocket } from '../../contexts/SocketContext'
@@ -131,6 +131,7 @@ export default function Sidebar() {
       <SectionHeader label="Community" icon={<Users size={12}/>} isOpen={openSections.community} onClick={() => toggle('community')} />
       {openSections.community && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <NavItem to="/projects" icon={<GitBranch size={18}/>} label="Dev Hub" />
           <NavItem to="/groups" icon={<Users size={18}/>} label="My Groups" />
           <NavItem to="/chat" icon={<MessageSquare size={18}/>} label="Messages" />
           <NavItem to="/collections" icon={<FolderHeart size={18}/>} label="Collections" />

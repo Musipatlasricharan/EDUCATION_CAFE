@@ -38,6 +38,9 @@ import ResumeBuilder from './pages/ResumeBuilder'
 import PeerTutoring from './pages/PeerTutoring'
 import Notes from './pages/Notes'
 import AgentDocs from './pages/AgentDocs'
+import Projects from './pages/Projects'
+import ProjectDetail from './pages/ProjectDetail'
+import ProjectEdit from './pages/ProjectEdit'
 
 // Coding Pages
 import CodingProblemsList from './pages/coding/CodingProblemsList'
@@ -104,6 +107,12 @@ export default function App() {
         <Route path="notes" element={<Notes />} />
         <Route path="agent-docs" element={<AgentDocs />} />
         
+        {/* Projects / Student Dev Hub */}
+        <Route path="projects" element={<Projects />} />
+        <Route path="projects/new" element={<ProjectEdit />} />
+        <Route path="projects/:id" element={<ProjectDetail />} />
+        <Route path="projects/:id/edit" element={<ProjectEdit />} />
+
         {/* Coding Features */}
         <Route path="coding/problems" element={<CodingProblemsList />} />
         <Route path="coding/solve/:id" element={<CodingProblemSolve />} />
