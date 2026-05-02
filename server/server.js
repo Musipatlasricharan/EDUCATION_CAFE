@@ -101,7 +101,20 @@ app.use('/api/', globalLimiter)
 app.use('/api/auth/login', authLimiter)
 app.use('/api/auth/register', authLimiter)
 
+// Connect to DB for Serverless Environments (Vercel)
+// This ensures every request has a DB connection before reaching routes
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ DB Middleware Error:', err.message);
+    next(err);
+  }
+});
+
 app.use('/api/auth', require('./routes/auth'))
+
 app.use('/api/resources', require('./routes/resources'))
 app.use('/api/groups', require('./routes/groups'))
 app.use('/api/chat', require('./routes/chat'))
@@ -124,14 +137,41 @@ app.set('io', io)
 // Error Handler
 app.use(errorHandler)
 
+// Environment Logging
+console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+console.log(`🔌 Port: ${process.env.PORT || 5000}`);
+
+// Health check routes
+app.get('/api/health', (req, res) => {
+  const mongoose = require('mongoose');
+  res.status(200).json({
+    status: 'healthy',
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    env: process.env.NODE_ENV,
+    vercel: !!process.env.VERCEL
+  });
+});
+
+app.get('/healthz', (req, res) => res.status(200).send('OK')); // For Render health checks
+
 // Serve Frontend in Production
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../client/dist');
+// We check for both NODE_ENV=production AND the existence of the dist folder
+const distPath = path.join(__dirname, '../client/dist');
+const fs = require('fs');
+
+if (process.env.NODE_ENV === 'production' || fs.existsSync(distPath)) {
+  console.log(`📁 Serving static files from: ${distPath}`);
   app.use(express.static(distPath));
   
   app.get('*', (req, res) => {
+    // If request is for API, don't serve index.html (let it fall through or 404)
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ success: false, message: 'API Route Not Found' });
+    }
     res.sendFile(path.join(distPath, 'index.html'));
   });
+} else {
+  console.log('⚠️ Static files (client/dist) not found. Frontend will not be served.');
 }
 
 const PORT = process.env.PORT || 5000
@@ -146,7 +186,7 @@ const startServer = async () => {
 
   server.listen(PORT, () => {
     console.log(`🚀 Server listening on port ${PORT}`);
-    console.log(`🏥 Health check: http://localhost:${PORT}/api/ai/status`);
+    console.log(`🏥 Health check: /api/health`);
   });
 
   server.on('error', (err) => {
@@ -164,16 +204,6 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     startServer()
   }
 }
-
-// For serverless functions, ensure DB is connected
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
 
 module.exports = app;
 
