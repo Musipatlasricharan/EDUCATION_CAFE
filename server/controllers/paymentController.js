@@ -10,17 +10,24 @@ const razorpay = new Razorpay({
 // Create a subscription order
 exports.createSubscriptionOrder = async (req, res) => {
   try {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error('❌ Razorpay keys are missing in environment variables');
+      return res.status(500).json({ success: false, message: 'Payment configuration missing on server' });
+    }
+
     const options = {
       amount: 49900, // Amount in paise (499 INR)
       currency: "INR",
       receipt: `sub_${Date.now()}`,
     };
 
+    console.log('🔄 Creating Razorpay order with options:', options);
     const order = await razorpay.orders.create(options);
+    console.log('✅ Razorpay order created:', order.id);
     res.status(200).json({ success: true, order });
   } catch (error) {
-    console.error('Razorpay Order Error:', error);
-    res.status(500).json({ success: false, message: 'Could not create order' });
+    console.error('❌ Razorpay Order Error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Could not create order' });
   }
 };
 

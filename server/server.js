@@ -38,11 +38,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://checkout.razorpay.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "http://res.cloudinary.com"],
-      connectSrc: ["'self'", "ws:", "wss:", "http://localhost:5000", "https://*.mongodb.net"],
+      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "http://res.cloudinary.com", "https://*.razorpay.com"],
+      connectSrc: ["'self'", "ws:", "wss:", "http://localhost:5000", "https://*.mongodb.net", "https://lumberjack.razorpay.com", "https://api.razorpay.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      frameSrc: ["'self'", "https://api.razorpay.com", "https://*.razorpay.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },

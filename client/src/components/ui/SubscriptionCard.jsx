@@ -19,7 +19,7 @@ export default function SubscriptionCard() {
       const { data } = await api.post('/payment/create-order');
       
       const options = {
-        key: 'rzp_live_SczjKmuskhu5Wt', // Live Key
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_SczjKmuskhu5Wt', // Environment variable or fallback
         amount: data.order.amount,
         currency: "INR",
         name: "EduCafe",
@@ -51,7 +51,8 @@ export default function SubscriptionCard() {
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (error) {
-       toast.error('Could not initiate payment');
+       const message = error.response?.data?.message || 'Could not initiate payment';
+       toast.error(message);
     } finally {
       setLoading(false);
     }
